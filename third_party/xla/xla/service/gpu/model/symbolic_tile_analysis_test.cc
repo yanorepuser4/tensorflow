@@ -110,6 +110,9 @@ ENTRY main {
     domain:
     d0 in [0, 19]
   )"));
+
+  EXPECT_TRUE(false) << analysis_->ToString();
+  EXPECT_TRUE(false) << tiled_hlo_computation.ToString();
 }
 
 TEST_F(SymbolicTileAnalysisTest, ElementwiseDiamondCSEIsSupported) {

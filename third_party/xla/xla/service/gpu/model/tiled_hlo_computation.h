@@ -17,6 +17,7 @@ limitations under the License.
 #define XLA_SERVICE_GPU_MODEL_TILED_HLO_COMPUTATION_H_
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -55,6 +56,8 @@ class TiledHloComputation {
   const TiledHloInstruction* GetRoot() const {
     return instructions_.back().get();
   }
+
+  std::string ToString() const;
 
  private:
   explicit TiledHloComputation(
