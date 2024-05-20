@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "tensorflow/core/grappler/optimizers/remapper.h"
 
+#include "tensorflow/cc/ops/math_ops.h"
 #include "tensorflow/cc/ops/nn_ops_internal.h"
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
@@ -2086,6 +2087,99 @@ TEST_F(RemapperFuseMatMulWithBiasAndActivationTest, Bf16) {
                     "FuseMatMulWithBiasAndActivation with bfloat16.";
   RunTest<DT_BFLOAT16>();  // NOLINT
 }
+
+class RemapperFuseMatMulWithAddV2AndMaximumTest : public RemapperTest {
+ public:
+  template <DataType DTYPE>
+  void RunTest() {
+    LOG(INFO) << "Run RemapperFuseMatMulWithAddV2AndMaximumTest";
+    using ::tensorflow::ops::Placeholder;
+
+    tensorflow::Scope s = tensorflow::Scope::NewRootScope();
+
+    auto lhs_shape = ops::Placeholder::Shape({8, 32});
+    auto rhs_shape = ops::Placeholder::Shape({32, 64});
+    auto bias_shape = ops::Placeholder::Shape({64});
+
+    auto lhs = Placeholder(s.WithOpName("lhs"), DTYPE, lhs_shape);
+    auto rhs = Placeholder(s.WithOpName("rhs"), DTYPE, rhs_shape);
+    auto bias = Placeholder(s.WithOpName("bias"), DTYPE, bias_shape);
+
+    auto matmul = ops::MatMul(s.WithOpName("matmul"), lhs, rhs);
+    auto add_v2 = ops::AddV2(s.WithOpName("AddV2"), matmul, bias);
+
+    typedef typename EnumToDataType<DTYPE>::Type CType;
+    auto zeros = ops::Const<CType>(s.WithOpName("zeros"), 0.0f, {64});
+
+    ops::Identity fetch = [&]() -> ops::Identity {
+      auto max = ops::Maximum(s.WithOpName("maximum"), add_v2, zeros);
+      auto fetch = s.WithOpName("fetch");
+
+      return ops::Identity(fetch, max);
+    }();
+
+    auto lhs_t = GenerateTensorWithSetRandom<DTYPE>({8, 32});
+    auto rhs_t = GenerateTensorWithSetRandom<DTYPE>({32, 64});
+    auto bias_t = GenerateTensorWithSetRandom<DTYPE>({64});
+
+    GrapplerItem item;
+    item.fetch = {"fetch"};
+    item.feed = {{"lhs", lhs_t}, {"rhs", rhs_t}, {"bias", bias_t}};
+    TF_ASSERT_OK(s.ToGraphDef(&item.graph));
+
+    const string device =
+        GetNumAvailableGPUs() > 0 && (DTYPE == DT_HALF || DTYPE == DT_FLOAT)
+            ? "/device:GPU:0"
+            : "/device:CPU:0";
+
+    // Place all nodes on CPU.
+    for (int i = 0; i < item.graph.node_size(); ++i) {
+      item.graph.mutable_node(i)->set_device(device);
+    }
+
+    Remapper optimizer(RewriterConfig::ON);
+    GraphDef output;
+    TF_ASSERT_OK(optimizer.Optimize(nullptr, item, &output));
+    LOG(ERROR) << "Second Optimize-------------------------------------------";
+    TF_ASSERT_OK(optimizer.Optimize(nullptr, item, &output));
+
+    // int found = 0;
+    // for (const NodeDef& node : output.node()) {
+    //   LOG(ERROR) << "node: " << node.name();
+    //   if (node.name() == "maximum") {
+    //     EXPECT_EQ(node.op(), "_FusedMatMul");
+    //     ASSERT_GE(node.input_size(), 3);
+    //     EXPECT_EQ(node.input(0), "lhs");
+    //     EXPECT_EQ(node.input(1), "rhs");
+
+    //     EXPECT_EQ(node.attr().at("num_args").i(), 1);
+    //     EXPECT_EQ(node.input(2), "bias");
+
+    //     const auto fused_ops = node.attr().at("fused_ops").list().s();
+    //     ASSERT_EQ(fused_ops.size(), 2);
+    //     EXPECT_EQ(fused_ops[0], "AddV2");
+    //     EXPECT_EQ(fused_ops[1], "Maximum");
+
+    //     found++;
+    //   }
+    // }
+    // EXPECT_EQ(1, found);
+
+    LOG(ERROR)
+        << "Run EvaluateNodes-------------------------------------------";
+    auto tensors_expected = EvaluateNodes(item.graph, item.fetch, item.feed);
+    ASSERT_EQ(tensors_expected.size(), 1);
+    auto tensors = EvaluateNodes(output, item.fetch, item.feed);
+    ASSERT_EQ(tensors.size(), 1);
+    if (DTYPE == DT_BFLOAT16 || DTYPE == DT_HALF)
+      test::ExpectClose(tensors[0], tensors_expected[0], 1e-2, 1e-2);
+    else
+      test::ExpectClose(tensors[0], tensors_expected[0], 1e-6);
+  }
+};
+
+// TEST_F(RemapperFuseMatMulWithAddV2AndMaximumTest, F32) { RunTest<DT_FLOAT>();
+// }
 
 TEST_F(RemapperTest, FuseConv2DWithBatchNorm) {
 #ifdef DNNL_AARCH64_USE_ACL
