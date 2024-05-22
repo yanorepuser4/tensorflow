@@ -67,7 +67,7 @@ class RemoteMgr {
   // remote worker.
   Status SerializeRemoteTensorHandle(
       TensorHandle* in, const bool wait_until_ready, RemoteTensorHandle* out,
-      Device* device, const string& device_name,
+      Device* device, const string& device_name = "",
       const bool serialize_resource_dtype_and_shape = false);
 
   // Deserialize a RemoteTensorHandle to a TensorHandle(local/remote).

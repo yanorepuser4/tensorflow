@@ -180,7 +180,8 @@ Status RemoteMgr::SerializeRemoteTensorHandle(
   out->set_op_id(op_id);
   out->set_output_num(output_num);
   out->set_op_device(in->op_device() ? in->op_device()->name() : "");
-  out->set_device(device_name);
+  out->set_device(device_name.empty() ? in->DeviceOrHostCPU(*parent_)->name()
+                                      : device_name);
   out->set_dtype(in->dtype);
   if (serialize_resource_dtype_and_shape) {
     std::vector<DtypeAndPartialTensorShape> resource_dtypes_and_shapes;
