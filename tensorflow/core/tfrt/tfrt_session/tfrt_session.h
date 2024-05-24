@@ -84,7 +84,8 @@ class TfrtSessionFactory : public tensorflow::SessionFactory {
   friend Status InitializeTfrtSession(const TfrtSessionOptions& options);
   friend Status UpdateTfrtSessionOptionsLocked(
       const TfrtSessionOptions& options);
-  Status InitializeLocked(const TfrtSessionOptions& options)
+  Status InitializeLocked(const TfrtSessionOptions& options,
+                          const SessionOptions& session_options)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool IsInitialized() const TF_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     return runtime_ != nullptr;
@@ -103,6 +104,7 @@ class TfrtSessionFactory : public tensorflow::SessionFactory {
   std::unique_ptr<ThreadPoolManager> thread_pool_manager_ TF_GUARDED_BY(mutex_);
   bool enable_mlrt_ TF_GUARDED_BY(mutex_) = false;
   tensorflow::BackendCompiler* backend_compiler_ TF_GUARDED_BY(mutex_);
+  StaticDeviceMgr* device_manager_;
 };
 
 // Configures the TfrtSessionFactory according to `options`. Should not be
