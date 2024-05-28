@@ -5122,7 +5122,7 @@ def _batch_gather(params, indices, batch_dims, axis=None):
 @tf_export(v1=["gather_nd", "manip.gather_nd"])
 @dispatch.add_dispatch_support
 @deprecated_endpoints("manip.gather_nd")
-def gather_nd(params, indices, name=None, batch_dims=0):
+def gather_nd(params, indices, name=None, batch_dims=0, bad_indices_policy=""):
   r"""Gather slices from `params` into a Tensor with shape specified by `indices`.
 
   `indices` is a `Tensor` of indices into `params`. The index vectors are
@@ -5367,27 +5367,45 @@ def gather_nd(params, indices, name=None, batch_dims=0):
   batch_dims_ = tensor_util.constant_value(batch_dims)
   if batch_dims_ is not None:
     batch_dims = int(batch_dims_)
-  if batch_dims == 0:
+  if batch_dims == 0 and bad_indices_policy in ("", "DEFAULT"):
     try:
       # TODO(apassos) find a less bad way of detecting resource variables
       # without introducing a circular dependency.
       return params.gather_nd(indices, name=name)
     except AttributeError:
-      return gen_array_ops.gather_nd(params, indices, name=name)
+      return gen_array_ops.gather_nd(
+          params, indices, name=name, bad_indices_policy=bad_indices_policy
+      )
   else:
-    return batch_gather_nd(params, indices, batch_dims=batch_dims, name=name)
+    return batch_gather_nd(
+        params,
+        indices,
+        batch_dims=batch_dims,
+        name=name,
+        bad_indices_policy=bad_indices_policy,
+    )
 
 
 @tf_export("gather_nd", v1=[])
 @dispatch.add_dispatch_support
-def gather_nd_v2(params, indices, batch_dims=0, name=None):
-  return gather_nd(params, indices, name=name, batch_dims=batch_dims)
+def gather_nd_v2(
+    params, indices, batch_dims=0, name=None, bad_indices_policy=""
+):
+  return gather_nd(
+      params,
+      indices,
+      name=name,
+      batch_dims=batch_dims,
+      bad_indices_policy=bad_indices_policy,
+  )
 
 
 gather_nd_v2.__doc__ = gather_nd.__doc__
 
 
-def batch_gather_nd(params, indices, batch_dims, name=None):
+def batch_gather_nd(
+    params, indices, batch_dims, name=None, bad_indices_policy=""
+):
   """gather_nd implementation with batch support."""
   with ops.name_scope(name, "BatchGatherND", [params, indices]):
     indices = ops.convert_to_tensor(indices, name="indices")
@@ -5463,7 +5481,9 @@ def batch_gather_nd(params, indices, batch_dims, name=None):
     # flat_indices now has shape [(B1.B2), i1, ..., iK, C]
     indices = concat((index_grid, flat_indices), axis=-1)
     # indices has shape [(B1.B2), i1, ..., iK, 2+C]
-    out = gen_array_ops.gather_nd(params, indices)
+    out = gen_array_ops.gather_nd(
+        params, indices, bad_indices_policy=bad_indices_policy
+    )
     # out has shape [(B1.B2), i1, ..., iK, N-C]. Now we reshape batch to
     # its original form.
     out_shape = shape(out)

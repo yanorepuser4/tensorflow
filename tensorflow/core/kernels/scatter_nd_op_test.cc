@@ -180,12 +180,12 @@ TEST_F(ScatterNdUpdateOpTest, Error_IndexOutOfRange) {
   // Feed and run
   AddInputFromArray<float>(TensorShape({5, 3}),
                            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-  AddInputFromArray<int32>(TensorShape({3, 1}), {0, 4, 99});
+  AddInputFromArray<int32>(TensorShape({3, 1}), {0, 99, 4});
   AddInputFromArray<float>(TensorShape({3, 3}),
                            {100, 101, 102, 777, 778, 779, 10000, 10001, 10002});
   Status s = RunOpKernel();
   EXPECT_TRUE(absl::StrContains(
-      s.ToString(), "indices[2] = [99] does not index into shape [5,3]"))
+      s.ToString(), "indices[1] = [99] does not index into shape [5,3]"))
       << s;
 }
 
@@ -238,6 +238,76 @@ TEST_F(ScatterNdUpdateOpTest, Error_MismatchedIndicesAndUpdateDimensions) {
       "Dimensions [0,1) of indices[shape=[3,1]] = 3 must match dimensions [0,1)"
       " of updates[shape=[2,3]] = 2"))
       << s;
+}
+
+class ScatterNdOpTest : public OpsTestBase {
+ protected:
+  void MakeOp(DataType variable_type, DataType index_type) {
+    TF_ASSERT_OK(NodeDefBuilder("myop", "ScatterNd")
+                     .Input(FakeInput(index_type))
+                     .Input(FakeInput(variable_type))
+                     .Input(FakeInput(DT_INT32))
+                     .Finalize(node_def()));
+    TF_ASSERT_OK(InitOp());
+  }
+};
+
+TEST_F(ScatterNdOpTest, Simple_OneD) {
+  MakeOp(DT_FLOAT, DT_INT32);
+
+  // Feed and run
+  AddInputFromArray<int32>(TensorShape({3, 1}), {0, 4, 2});
+  AddInputFromArray<float>(TensorShape({3, 1}), {100, 101, 102});
+  AddInputFromArray<int32>(TensorShape({2}), {5, 1});
+  TF_ASSERT_OK(RunOpKernel());
+
+  // Check the new state of the input
+  Tensor expected(allocator(), DT_FLOAT, TensorShape({5, 1}));
+  test::FillValues<float>(&expected, {100, 0, 102, 0, 101});
+  test::ExpectTensorEqual<float>(expected, *GetOutput(0));
+}
+
+TEST_F(ScatterNdOpTest, Error_IndexOutOfRange) {
+  MakeOp(DT_FLOAT, DT_INT32);
+
+  // Feed and run
+  AddInputFromArray<int32>(TensorShape({3, 1}), {0, 5, 2});
+  // Put the bad index in the middle to make sure the others are still updated.
+  AddInputFromArray<float>(TensorShape({3, 1}), {100, 101, 102});
+  AddInputFromArray<int32>(TensorShape({2}), {5, 1});
+  Status s = RunOpKernel();
+  EXPECT_TRUE(absl::StrContains(
+      s.ToString(), "indices[1] = [5] does not index into shape [5,1]"))
+      << s;
+}
+
+class ScatterNdOpIgnoreBadIndicesTest : public OpsTestBase {
+ protected:
+  void MakeOp(DataType variable_type, DataType index_type) {
+    TF_ASSERT_OK(NodeDefBuilder("myop", "ScatterNd")
+                     .Input(FakeInput(index_type))
+                     .Input(FakeInput(variable_type))
+                     .Input(FakeInput(DT_INT32))
+                     .Attr("bad_indices_policy", "IGNORE")
+                     .Finalize(node_def()));
+    TF_ASSERT_OK(InitOp());
+  }
+};
+
+TEST_F(ScatterNdOpIgnoreBadIndicesTest, DropOutOfRangeIndices) {
+  MakeOp(DT_FLOAT, DT_INT32);
+
+  // Feed and run
+  AddInputFromArray<int32>(TensorShape({3, 1}), {0, 5, 2});
+  // Put the bad index in the middle to make sure the others are still updated.
+  AddInputFromArray<float>(TensorShape({3, 1}), {100, 101, 102});
+  AddInputFromArray<int32>(TensorShape({2}), {5, 1});
+  TF_ASSERT_OK(RunOpKernel());
+
+  // Check the new state of the input
+  Tensor expected(allocator(), DT_FLOAT, TensorShape({5, 1}));
+  test::FillValues<float>(&expected, {100, 0, 102, 0, 0});
+  test::ExpectTensorEqual<float>(expected, *GetOutput(0));
 }
 
 class ScatterNdUpdateBM : public ScatterNdUpdateOpTest {
