@@ -21,25 +21,25 @@ limitations under the License.
 namespace tensorflow {
 namespace profiler {
 
-using tsl::profiler::FindHostEventType;             // NOLINT
-using tsl::profiler::FindStatType;                  // NOLINT
-using tsl::profiler::FindTfOpEventType;             // NOLINT
-using tsl::profiler::GetHostEventTypeStr;           // NOLINT
-using tsl::profiler::GetStatTypeStr;                // NOLINT
-using tsl::profiler::GpuPlaneName;                  // NOLINT
-using tsl::profiler::HostEventType;                 // NOLINT
-using tsl::profiler::IsHostEventType;               // NOLINT
-using tsl::profiler::IsInternalEvent;               // NOLINT
-using tsl::profiler::IsInternalStat;                // NOLINT
-using tsl::profiler::IsStatType;                    // NOLINT
-using tsl::profiler::kCuptiDriverApiPlaneName;      // NOLINT
-using tsl::profiler::kCustomPlanePrefix;            // NOLINT
-using tsl::profiler::kDeviceVendorAMD;              // NOLINT
-using tsl::profiler::kDeviceVendorNvidia;           // NOLINT
-using tsl::profiler::kGpuPlanePrefix;               // NOLINT
-using tsl::profiler::kHostThreadsPlaneName;         // NOLINT
-using tsl::profiler::kKernelLaunchLineName;         // NOLINT
-using tsl::profiler::kMegaScaleBarrier;             // NOLINT
+using tsl::profiler::FindHostEventType;              // NOLINT
+using tsl::profiler::FindStatType;                   // NOLINT
+using tsl::profiler::FindTfOpEventType;              // NOLINT
+using tsl::profiler::GetHostEventTypeStr;            // NOLINT
+using tsl::profiler::GetStatTypeStr;                 // NOLINT
+using tsl::profiler::GpuPlaneName;                   // NOLINT
+using tsl::profiler::HostEventType;                  // NOLINT
+using tsl::profiler::IsHostEventType;                // NOLINT
+using tsl::profiler::IsInternalEvent;                // NOLINT
+using tsl::profiler::IsInternalStat;                 // NOLINT
+using tsl::profiler::IsStatType;                     // NOLINT
+using tsl::profiler::kCuptiDriverApiPlaneName;       // NOLINT
+using tsl::profiler::kCustomPlanePrefix;             // NOLINT
+using tsl::profiler::kDeviceVendorAMD;               // NOLINT
+using tsl::profiler::kDeviceVendorNvidia;            // NOLINT
+using tsl::profiler::kGpuPlanePrefix;                // NOLINT
+using tsl::profiler::kHostThreadsPlaneName;          // NOLINT
+using tsl::profiler::kKernelLaunchLineName;          // NOLINT
+using tsl::profiler::kMegaScaleBarrier;              // NOLINT
 using tsl::profiler::kMegaScaleD2HTransferFinished;  // NOLINT
 using tsl::profiler::kMegaScaleD2HTransferStart;     // NOLINT
 using tsl::profiler::kMegaScaleDcnReceive;           // NOLINT
@@ -60,6 +60,7 @@ using tsl::profiler::kTFStreamzPlaneName;            // NOLINT
 using tsl::profiler::kTpuPlanePrefix;                // NOLINT
 using tsl::profiler::kTpuPlaneRegex;                 // NOLINT
 using tsl::profiler::kTpuRuntimePlaneName;           // NOLINT
+using tsl::profiler::kTpuSystemPlaneRegex;           // NOLINT
 using tsl::profiler::kXlaAsyncOpLineName;            // NOLINT
 using tsl::profiler::kXlaModuleLineName;             // NOLINT
 using tsl::profiler::kXlaOpLineName;                 // NOLINT
