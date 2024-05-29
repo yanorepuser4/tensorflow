@@ -19,6 +19,8 @@
 
 *   <INSERT MAJOR FEATURE HERE, USING MARKDOWN SYNTAX>
 *   <IF RELEASE CONTAINS MULTIPLE FEATURES FROM SAME AREA, GROUP THEM TOGETHER>
+*   TensorFlow is going to support NumPy 2.0 in the next release. It may break
+    some edge cases of TensorFlow API usage.
 
 ### Bug Fixes and Other Changes
 
