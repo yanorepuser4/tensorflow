@@ -772,7 +772,7 @@ std::string Interval::ToString() const {
 }
 
 void Interval::Print(std::ostream& out) const {
-  out << '[' << lower << ", " << upper << "]";
+  out << '[' << lower << ", " << upper + 1 << ")";
 }
 
 Interval::ComparisonResult Interval::operator>(const Interval& b) const {
